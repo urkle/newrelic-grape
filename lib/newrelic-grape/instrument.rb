@@ -9,11 +9,18 @@ module NewRelic
         def call!(env)
           @env = env
           @newrelic_request = ::Rack::Request.new(env)
+          params = begin
+            request.params
+          rescue => err
+            warning = "failed to capture request parameters: %p: %s" % [ err.class, err.message ]
+            NewRelic::Agent.logger.warn(warning)
+            {}
+          end
           trace_options = {
             :category => :rack,
             :path => "#{request_method} #{request_path}",
             :request => @newrelic_request,
-            :params => @newrelic_request.params
+            :params => params
           }
           perform_action_with_newrelic_trace(trace_options) do
             @app_response = @app.call(@env)
